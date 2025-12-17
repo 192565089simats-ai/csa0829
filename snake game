@@ -1,0 +1,74 @@
+import pygame, random, sys
+pygame.init()
+
+# Window
+W, H = 600, 400
+screen = pygame.display.set_mode((W, H))
+pygame.display.set_caption("Animated Snake")
+clock = pygame.time.Clock()
+
+# Colors
+BG = (40, 120, 200)
+SNAKE = (0, 200, 0)
+HEAD = (0, 150, 0)
+FOOD = (200, 50, 50)
+
+# Settings
+SIZE = 10          # grid size
+FPS = 60           # animation smoothness
+STEP = 10          # movement per step (keep == SIZE)
+
+font = pygame.font.SysFont(None, 35)
+
+def draw_snake(body):
+    for i, (x, y) in enumerate(body):
+        color = HEAD if i == len(body) - 1 else SNAKE
+        pygame.draw.circle(screen, color, (x+5, y+5), 5)
+
+def game():
+    x, y = W//2, H//2
+    dx, dy = SIZE, 0
+    body = [(x, y)]
+    length = 4
+
+    food = (random.randrange(0, W, SIZE),
+            random.randrange(0, H, SIZE))
+
+    move_timer = 0
+    MOVE_DELAY = 6   # lower = faster snake
+
+    while True:
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_LEFT  and dx == 0: dx, dy = -SIZE, 0
+                if e.key == pygame.K_RIGHT and dx == 0: dx, dy = SIZE, 0
+                if e.key == pygame.K_UP    and dy == 0: dx, dy = 0, -SIZE
+                if e.key == pygame.K_DOWN  and dy == 0: dx, dy = 0, SIZE
+
+        move_timer += 1
+        if move_timer >= MOVE_DELAY:
+            move_timer = 0
+            x += dx; y += dy
+            head = (x, y)
+            body.append(head)
+            if len(body) > length:
+                body.pop(0)
+
+            if head in body[:-1] or not (0 <= x < W and 0 <= y < H):
+                return
+
+            if head == food:
+                length += 2
+                food = (random.randrange(0, W, SIZE),
+                        random.randrange(0, H, SIZE))
+
+        screen.fill(BG)
+        pygame.draw.rect(screen, FOOD, (*food, SIZE, SIZE))
+        draw_snake(body)
+        pygame.display.update()
+        clock.tick(FPS)
+
+while True:
+    game()

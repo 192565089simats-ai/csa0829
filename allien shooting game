@@ -1,0 +1,118 @@
+import pygame, random, sys
+pygame.init()
+
+# Screen
+W, H = 600, 600
+screen = pygame.display.set_mode((W, H))
+pygame.display.set_caption("Alien Shooter")
+clock = pygame.time.Clock()
+
+# Colors
+BG = (0, 0, 20)
+PLAYER_COLOR = (0, 255, 0)
+ALIEN_COLOR = (255, 0, 0)
+BULLET_COLOR = (255, 255, 0)
+TEXT = (255, 255, 255)
+
+# Player (wider shuttle)
+player_w, player_h = 140, 50  # wider horizontally
+player_x = W//2 - player_w//2
+player_y = H - player_h - 10
+player_speed = 5
+
+# Bullets (bigger)
+bullets = []
+BULLET_SPEED = 7
+BULLET_WIDTH = 6
+BULLET_HEIGHT = 15
+ACCELERATION_MODE = False
+
+# Aliens
+alien_w, alien_h = 40, 30
+aliens = [[random.randint(0, W-alien_w), random.randint(50, 150)] for _ in range(3)]
+ALIEN_SPEED = 1
+
+# Score
+score = 0
+font = pygame.font.SysFont(None, 40)
+
+def draw_text(txt, x, y):
+    screen.blit(font.render(txt, True, TEXT), (x, y))
+
+# --- Main Game Loop ---
+while True:
+    screen.fill(BG)
+    
+    for e in pygame.event.get():
+        if e.type == pygame.QUIT:
+            pygame.quit(); sys.exit()
+        if e.type == pygame.KEYDOWN:
+            if e.key == pygame.K_SPACE:
+                ACCELERATION_MODE = True
+        if e.type == pygame.KEYUP:
+            if e.key == pygame.K_SPACE:
+                ACCELERATION_MODE = False
+
+    # Player movement
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] and player_x > 0:
+        player_x -= player_speed
+    if keys[pygame.K_RIGHT] and player_x < W - player_w:
+        player_x += player_speed
+
+    # Shoot bullets (7 bullets spread across shuttle width)
+    if ACCELERATION_MODE:
+        for i in range(7):
+            pos_x = player_x + i * player_w // 6  # 7 positions evenly spaced
+            bullets.append([pos_x, player_y])
+
+    # Move bullets
+    for b in bullets:
+        b[1] -= BULLET_SPEED
+
+    # Remove off-screen bullets
+    bullets = [b for b in bullets if b[1] > 0]
+
+    # Move aliens
+    for a in aliens:
+        a[1] += ALIEN_SPEED
+
+    # Collision detection
+    for b in bullets[:]:
+        for a in aliens[:]:
+            alien_rect = pygame.Rect(a[0], a[1], alien_w, alien_h)
+            bullet_rect = pygame.Rect(b[0]-BULLET_WIDTH//2, b[1], BULLET_WIDTH, BULLET_HEIGHT)
+            if bullet_rect.colliderect(alien_rect):
+                if a in aliens: aliens.remove(a)
+                if b in bullets: bullets.remove(b)
+                score += 1
+
+    # Respawn aliens if all destroyed
+    if not aliens:
+        aliens = [[random.randint(0, W-alien_w), random.randint(50, 150)] for _ in range(3)]
+
+    # Draw player
+    pygame.draw.rect(screen, PLAYER_COLOR, (player_x, player_y, player_w, player_h))
+
+    # Draw bullets
+    for b in bullets:
+        pygame.draw.rect(screen, BULLET_COLOR, (b[0]-BULLET_WIDTH//2, b[1], BULLET_WIDTH, BULLET_HEIGHT))
+
+    # Draw aliens
+    for a in aliens:
+        pygame.draw.rect(screen, ALIEN_COLOR, (a[0], a[1], alien_w, alien_h))
+
+    # Draw score
+    draw_text(f"Score: {score}", 10, 10)
+
+    # Game over if alien reaches bottom
+    for a in aliens:
+        if a[1] + alien_h >= H:
+            draw_text("GAME OVER", W//2 - 100, H//2)
+            pygame.display.update()
+            pygame.time.wait(2000)
+            pygame.quit(); sys.exit()
+
+    pygame.display.update()
+    clock.tick(60)
+
